@@ -24,7 +24,7 @@ namespace Blocks.Builder
             chunkPreview.Renderers = renderers;
             foreach (var r in renderers)
             {
-                r.materials = r.materials.Select(m => translucentMat).ToArray();
+                r.materials = r.sharedMaterials.Select(m => translucentMat).ToArray();
             }
 
             chunkPreview.Material = translucentMat;
@@ -84,7 +84,7 @@ namespace Blocks.Builder
             if (fromRenderer)
             {
                 var toRenderer = to.gameObject.AddComponent<MeshRenderer>();
-                toRenderer.materials = new Material[fromRenderer.materials.Length];
+                toRenderer.materials = new Material[fromRenderer.sharedMaterials.Length];
             }
         }
 
@@ -94,7 +94,7 @@ namespace Blocks.Builder
             if (fromMf)
             {
                 var toMf = to.gameObject.AddComponent<MeshFilter>();
-                toMf.mesh = fromMf.mesh;
+                toMf.mesh = fromMf.sharedMesh;
             }
         }
 
