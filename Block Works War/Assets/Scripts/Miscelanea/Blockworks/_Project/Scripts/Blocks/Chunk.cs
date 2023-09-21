@@ -13,9 +13,7 @@ namespace Blocks
     {
         private void Start()
         {
-            var rb = GetComponent<Rigidbody>();
-            rb.mass = GetComponentsInChildren<Block>().Sum(block => block.Mass);
-            rb.ResetCenterOfMass();
+            RecalculateMass();
         }
 
         public (Transform thisSocket, Transform otherSocket)[] GetConnections()
@@ -98,6 +96,7 @@ namespace Blocks
         {
             ConnectSockets(socketPairs);
             ConnectChunks(chunks);
+            RecalculateMass();
         }
 
         private void ConnectSockets(IEnumerable<SocketPair> socketPairs)
@@ -125,6 +124,8 @@ namespace Blocks
         {
             DisconnectSockets(sockets);
             DisconnectChunks(groups);
+
+            RecalculateMass();
         }
 
         private void DisconnectSockets(IEnumerable<Socket> sockets)
@@ -151,6 +152,13 @@ namespace Blocks
                     block.ConnectTo(chunk);
                 }
             }
+        }
+
+        private void RecalculateMass()
+        {
+            var rb = GetComponent<Rigidbody>();
+            rb.mass = GetComponentsInChildren<Block>().Sum(b => b.Mass);
+            rb.ResetCenterOfMass();
         }
 
         private Chunk CreateChunk()
