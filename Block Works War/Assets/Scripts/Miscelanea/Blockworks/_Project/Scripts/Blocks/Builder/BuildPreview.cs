@@ -68,9 +68,9 @@ namespace Blocks.Builder
             {
                 // Copy the transform back
                 owner.transform.CopyWorldFrom(transform);
-
-                var newBlock = ChunkFactory.Connect(Snap);
-                //SwitchLayerInChildren(newBlock.transform, "SnapSocket", "Default");
+                
+                ChunkFactory.Connect(Snap);
+                Debug.Log("Snapped");
             }
             else
             {

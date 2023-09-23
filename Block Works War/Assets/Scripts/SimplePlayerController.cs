@@ -6,11 +6,19 @@ public class SimplePlayerController : MonoBehaviour
 {
     [SerializeField] private Camera _camera;
 
+    private GameObject _currentFocused;
     private float _grabDistance;
     private Chunk _current;
 
     private void Update()
     {
+        if (Input.GetKeyDown(KeyCode.E) && _currentFocused != null)
+        {
+            InteractableBlock b = _currentFocused.GetComponentInParent<InteractableBlock>();
+            if (b != null)
+                b.Interact();
+        }
+
         if (Input.GetMouseButtonDown(0))
         {
             HandleGrabStart();
@@ -25,6 +33,20 @@ public class SimplePlayerController : MonoBehaviour
         else if (Input.GetMouseButtonUp(0))
         {
             HandleGrabEnd();
+        }
+    }
+
+    private void FixedUpdate()
+    {
+        CheckForFocusedObject();
+    }
+
+    private void CheckForFocusedObject()
+    {
+        Ray ray = _camera.ScreenPointToRay(new Vector2((Screen.width * 0.5f) - 1, (Screen.height * 0.5f) - 1));
+        if (Physics.Raycast(ray, out RaycastHit hit))
+        {
+            _currentFocused = hit.collider.gameObject;
         }
     }
 
@@ -81,13 +103,9 @@ public class SimplePlayerController : MonoBehaviour
 
     private Block CheckForBlock()
     {
-        Ray ray = _camera.ScreenPointToRay(new Vector2((Screen.width * 0.5f) - 1, (Screen.height * 0.5f) - 1));
-        if (Physics.Raycast(ray, out RaycastHit hit))
+        if (_currentFocused != null)
         {
-            if (hit.collider.TryGetComponent(out Block b))
-            {
-                return b;
-            }
+            return _currentFocused.GetComponent<Block>();
         }
 
         return null;

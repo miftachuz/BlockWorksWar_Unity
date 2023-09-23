@@ -37,7 +37,7 @@ namespace Blocks.Builder
                 if (connections != closeSocketPairs.Length)
                 {
                     // Sockets are too far away
-                    return (AlignState.SocketsTooFar, new SocketPair[0]);
+                    return (AlignState.SocketsTooFar, connectionCandidates);
                 }
             }
 
@@ -149,6 +149,7 @@ namespace Blocks.Builder
         {
             var output = new List<(Transform thisSocket, Transform otherSocket)>();
             var marked = new bool[connections.Length];
+            Debug.Log(connections.Length);
             for (var i = 0; i < connections.Length; i++)
             {
                 var isCollinear = false;
