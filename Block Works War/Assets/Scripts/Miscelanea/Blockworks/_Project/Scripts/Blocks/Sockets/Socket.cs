@@ -1,154 +1,157 @@
-using System;
-using System.Linq;
-using ElasticSea.Framework.Util;
 using UnityEngine;
 
 namespace Blocks.Sockets
 {
-    public class Socket : MonoBehaviour
+    [System.Serializable]
+    public class Socket
     {
-        [SerializeField] private Block block;
-        [SerializeField] private float radius = 0.0125f;
-        [SerializeField] private bool active = true;
+        private const string SnapSocketLayer = "SnapSocket";
+        private static float DefaultRadius = 0.0125f;
+        private static Collider[] SocketBuffer = new Collider[3];
 
-        [SerializeField] private Socket connectedSocket;
+        [SerializeField] private Vector3 position;
+        [SerializeField] private Vector3 orientation;
 
-        private SphereCollider socketCollider;
+        // [SerializeField]
+        private Block block;
+        private Socket connectedSocket;
+        private SphereCollider collider;
+        private bool isActive;
 
+        /// <summary>
+        /// Local position relative to the owner block
+        /// </summary>
+        public Vector3 LocalPosition 
+        { 
+            get => position; 
+            set => position = value;
+        }
 
-        public float Radius
+        /// <summary>
+        /// World space position
+        /// </summary>
+        public Vector3 Position 
+        { 
+            get
+            {
+                if (block == null)
+                {
+                    Debug.LogWarning("Unable to retrieve world position");
+                    return position;
+                }
+                
+                return block.transform.TransformPoint(position); 
+            }
+        }
+
+        /// <summary>
+        /// Local orientation relative to the owner block
+        /// </summary>
+        public Quaternion LocalOrientation 
+        { 
+            get => Quaternion.Euler(orientation); 
+            set => orientation = value.eulerAngles;
+        }
+
+        /// <summary>
+        /// World space orientation
+        /// </summary>
+        public Quaternion Orientation { get => block.transform.rotation * LocalOrientation; }
+
+        public float Radius { get => DefaultRadius; }
+        public Block Block { get => block; }
+        public Socket ConnectedSocket { get => connectedSocket; }
+        public SphereCollider Collider { get => collider; }
+
+        public bool IsInitialized { get => block != null; }
+
+        public bool IsConnected { get => connectedSocket != null; }
+
+        public bool IsActive 
         {
-            get => radius;
+            get => isActive;
             set
             {
-                radius = value;
-                if (socketCollider) socketCollider.radius = value;
+                isActive = value;
+                collider.enabled = isActive && !IsConnected;
             }
         }
 
-        public bool Active
+        public void Init(Block block)
         {
-            get => active;
-            set
-            {
-                active = value;
-                if (socketCollider) socketCollider.enabled = active && connectedSocket == false;
-            }
+            this.block = block;
+
+            if (Application.isPlaying)
+                CreateCollider();
         }
-
-        public Socket ConnectedSocket => connectedSocket;
-
-        public Block Block
+        
+        public void Connect(Socket other)
         {
-            get => block;
-            set => block = value;
-        }
-
-        private void Awake()
-        {
-            gameObject.layer = LayerMask.NameToLayer("SnapSocket");
-            socketCollider = gameObject.AddComponent<SphereCollider>();
-            socketCollider.center = Vector3.zero;
-            socketCollider.isTrigger = false;
-            Active = active;
-            Radius = radius;
-        }
-
-        public Socket[] Trigger()
-        {
-            var position = transform.position;
-            var radius = Radius * transform.lossyScale.x;
-            var layerMask = LayerMask.GetMask("SnapSocket");
-            var candidates = Physics.OverlapSphere(position, radius, layerMask);
-
-            return candidates
-                .Select(c => c.GetComponent<Socket>())
-                .Where(s => s.Block != Block)
-                .ToArray();
-        }
-
-        public void Connect(Socket socket)
-        {
-            if (connectedSocket == null)
-            {
-                AttachSocket(socket);
-                socket.AttachSocket(this);
-            }
-        }
-
-        private void AttachSocket(Socket other)
-        {
+            if (IsConnected || other.IsConnected)
+                return;
+            
             connectedSocket = other;
-            socketCollider.enabled = false;
+            other.Connect(this);
+
+            collider.enabled = false;
         }
 
         public void Disconnect()
         {
-            if (connectedSocket != null)
-            {
-                connectedSocket.DetachSocket();
-                DetachSocket();
-            }
-        }
-
-        private void DetachSocket()
-        {
+            if (!IsConnected)
+                return;
+            
+            connectedSocket.Disconnect();
             connectedSocket = null;
-            socketCollider.enabled = active;
+
+            collider.enabled = true;
         }
 
-        [SerializeField] private bool drawGizmos = true;
-
-        private void OnDrawGizmos()
+        private void CreateCollider()
         {
-            if (drawGizmos == false)
-            {
-                return;
-            }
+            GameObject g = new GameObject("SocketCollider");
+            g.transform.SetParent(block.transform);
+            g.transform.localPosition = LocalPosition;
+            g.layer = LayerMask.NameToLayer(SnapSocketLayer);
 
-            if (active == false)
-            {
-                return;
-            }
+            collider = g.AddComponent<SphereCollider>();
+            collider.radius = DefaultRadius;
+            collider.center = Vector3.zero;
+            collider.isTrigger = true;
 
-            if (connectedSocket != null)
-            {
-                Gizmos.matrix = transform.localToWorldMatrix;
-                Gizmos.color = Color.gray.SetAlpha(.5f);
-                Gizmos.DrawSphere(Vector3.zero, Radius / 2);
-                return;
-            }
+            g.AddComponent<SocketIdentifier>().Socket = this;
+        }
 
-            var color = Color.blue;
-            if (block.Chunk.IsAnchored)
-            {
-                color = Color.magenta;
-            }
+        /// <summary>
+        /// Get the closest socket from other block
+        /// </summary>
+        /// <returns></returns>
+        public Socket GetSocketCandidate()
+        {
+            // LayerMask layer = LayerMask.NameToLayer(SnapSocketLayer);
+            int layer = ~0;
+            int hits = Physics.OverlapSphereNonAlloc(Position, Radius, SocketBuffer, layer, QueryTriggerInteraction.Collide);
 
-            var candidates = Trigger();
-            if (candidates.Any())
+            if (hits > 0)
             {
-                Gizmos.color = Color.yellow;
-                Gizmos.matrix = transform.localToWorldMatrix;
-                Gizmos.DrawSphere(Vector3.zero, Radius * .5f);
-
-                foreach (var candidate in candidates)
+                for (int i = 0; i < hits; i++)
                 {
-                    Gizmos.color = Color.yellow;
-                    Gizmos.matrix = Matrix4x4.identity;
-                    GizmoUtils.DrawLine(transform.position, candidate.transform.position, 5);
+                    // NOTE: Find a way for checking the other socket without GetComponent call
+                    if (SocketBuffer[i].TryGetComponent(out SocketIdentifier id))
+                    {
+                        if (id.Socket.Block != block)
+                            return id.Socket;
+                    }
                 }
+            }
 
-                Gizmos.matrix = transform.localToWorldMatrix;
-                Gizmos.color = color.SetAlpha(.5f);
-                Gizmos.DrawWireSphere(Vector3.zero, Radius);
-            }
-            else
-            {
-                Gizmos.matrix = transform.localToWorldMatrix;
-                Gizmos.color = color.SetAlpha(.5f);
-                Gizmos.DrawSphere(Vector3.zero, Radius);
-            }
+            return null;
+        }
+
+        private class SocketIdentifier : MonoBehaviour
+        {
+            [HideInInspector]
+            public Socket Socket;
         }
     }
 }

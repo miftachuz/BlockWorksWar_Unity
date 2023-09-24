@@ -16,65 +16,110 @@ namespace Blocks
             RecalculateMass();
         }
 
-        public (Transform thisSocket, Transform otherSocket)[] GetConnections()
+        public IEnumerable<Socket> Sockets
         {
-            var sockets = transform.GetComponentsInChildren<Socket>();
-            var connected = new Socket[sockets.Length];
-
-            // Find all connected pairs
-            for (var i = 0; i < sockets.Length; i++)
+            get
             {
-                var socket = sockets[i];
-                var candidate = socket.GetComponent<Socket>().Trigger();
-                if (candidate.IsEmpty() == false)
+                foreach (Block b in Blocks)
                 {
-                    var closest = candidate
-                        .OrderBy(o => o.transform.position.Distance(socket.transform.position))
-                        .First();
-
-                    var sockets2 = closest;
-
-                    connected[i] = closest;
-
+                    if (!b.Sockets.Any())
+                        continue;
+                        
+                    foreach (Socket socket in b.Sockets)
+                    {
+                        yield return socket;
+                    }
                 }
             }
-
-            // Sort connection for the closest one
-            return sockets.Select((socket, i) =>
-                {
-                    if (connected[i] == null) return null;
-                    var dist = sockets[i].transform.position.Distance(connected[i].transform.position);
-                    return new {Index = i, Distance = dist};
-                })
-                .Where(it => it != null)
-                .OrderBy(arg => arg.Distance)
-                .Select(arg => (sockets[arg.Index].transform, connected[arg.Index].transform))
-                .ToArray();
         }
+
+        public IEnumerable<Socket> EmptySockets
+        {
+            get
+            {
+                foreach (Socket socket in Sockets)
+                {
+                    if (!socket.IsConnected)
+                        yield return socket;
+                }
+            }
+        }
+
+        // public (Socket thisSocket, Socket otherSocket)[] GetConnections()
+        // {
+        //     var sockets = transform.GetComponentsInChildren<Socket>();
+        //     var connected = new Socket[sockets.Length];
+
+        //     // Find all connected pairs
+        //     for (var i = 0; i < sockets.Length; i++)
+        //     {
+        //         var socket = sockets[i];
+        //         var candidate = socket.GetComponent<Socket>().Trigger();
+        //         if (candidate.IsEmpty() == false)
+        //         {
+        //             var closest = candidate
+        //                 .OrderBy(o => o.transform.position.Distance(socket.transform.position))
+        //                 .First();
+
+        //             var sockets2 = closest;
+
+        //             connected[i] = closest;
+
+        //         }
+        //     }
+
+        //     // Sort connection for the closest one
+        //     return sockets.Select((socket, i) =>
+        //         {
+        //             if (connected[i] == null) return null;
+        //             var dist = sockets[i].Position.Distance(connected[i].Position);
+        //             return new {Index = i, Distance = dist};
+        //         })
+        //         .Where(it => it != null)
+        //         .OrderBy(arg => arg.Distance)
+        //         .Select(arg => (sockets[arg.Index].transform, connected[arg.Index].transform))
+        //         .ToArray();
+        // }
 
         public bool IsAnchored => Blocks.Any(l => l.IsAnchored);
 
+        // TODO: Cache this
         public IEnumerable<Block> Blocks => GetComponentsInChildren<Block>();
+
+        public IEnumerable<SocketPair> GetConnections()
+        {
+            HashSet<SocketPair> connected = new HashSet<SocketPair>();
+            foreach (Socket s in EmptySockets)
+            {
+                Socket candidate = s.GetSocketCandidate();
+                if (candidate != null)
+                {
+                    connected.Add(new SocketPair { This = s, Other = candidate });
+                }
+            }
+
+            return connected;
+        }
 
         private void OnDrawGizmosSelected()
         {
-            var connections = GetConnections();
-            for (var i = 0; i < connections.Length; i++)
-            {
-                var color = Color.white;
-                var size = 0.01f;
-                if (i == 0) color = Color.red;
-                if (i == 1) color = Color.blue;
-                if (i >= 2) size = 0.005f;
+            // var connections = GetConnections();
+            // for (var i = 0; i < connections.Length; i++)
+            // {
+            //     var color = Color.white;
+            //     var size = 0.01f;
+            //     if (i == 0) color = Color.red;
+            //     if (i == 1) color = Color.blue;
+            //     if (i >= 2) size = 0.005f;
 
-                var from = connections[i].thisSocket.transform.position;
-                var to = connections[i].otherSocket.transform.position;
+            //     var from = connections[i].thisSocket.transform.position;
+            //     var to = connections[i].otherSocket.transform.position;
 
-                Gizmos.color = color.SetAlpha(.5f);
-                Gizmos.DrawSphere(from, size);
-                Gizmos.DrawSphere(to, size);
-                Gizmos.DrawLine(from, to);
-            }
+            //     Gizmos.color = color.SetAlpha(.5f);
+            //     Gizmos.DrawSphere(from, size);
+            //     Gizmos.DrawSphere(to, size);
+            //     Gizmos.DrawLine(from, to);
+            // }
 
             foreach (var (a, b) in GetComponentInChildren<Block>().GetAllConnections())
             {

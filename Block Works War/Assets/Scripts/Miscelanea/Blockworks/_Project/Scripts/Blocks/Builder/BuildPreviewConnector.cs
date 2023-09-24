@@ -57,28 +57,51 @@ namespace Blocks.Builder
         {
             return candidates.Where(socketPair =>
             {
-                var thisPosition = socketPair.This.transform.position;
-                var otherPosition = socketPair.Other.transform.position;
+                var thisPosition = socketPair.This.Position;
+                var otherPosition = socketPair.Other.Position;
                 var socketDistance = otherPosition.Distance(thisPosition);
                 return socketDistance < maxDistanceThreashold;
             });
         }
 
+        // private IEnumerable<SocketPair> GetSocketConnectionCandidates(Chunk owner)
+        // {
+        //     var realSockets = owner.GetComponentsInChildren<Socket>().ToSet();
+        //     var previewSockets = GetComponentsInChildren<Socket>();
+
+        //     return previewSockets
+        //         .Select(socket => new SocketPair {This = socket, Other = socket.GetSocketCandidate()})
+        //         .Where(socketPair => socketPair.Other != null)
+        //         .Where(socketPair => realSockets.Contains(socketPair.Other) == false);
+        // }
+
         private IEnumerable<SocketPair> GetSocketConnectionCandidates(Chunk owner)
         {
-            var realSockets = owner.GetComponentsInChildren<Socket>().ToSet();
-            var previewSockets = GetComponentsInChildren<Socket>();
+            // IEnumerable<Socket> realSockets = owner.Sockets;
+            List<Socket> realSockets = owner.EmptySockets.ToList();
 
+            // TODO: This might return null, check the preview object hierarchy structure
+            IEnumerable<Socket> previewSockets = GetComponentInChildren<Chunk>().EmptySockets;
+
+            Debug.Log("Called");
+
+            // TODO: This will cause performance issue when called frequently
             return previewSockets
-                .Select(socket => new SocketPair {This = socket, Other = socket.Trigger().FirstOrDefault()})
-                .Where(socketPair => socketPair.Other != null)
-                .Where(socketPair => realSockets.Contains(socketPair.Other) == false);
+                .Select(s => {
+                    Socket candidate = s.GetSocketCandidate();
+                    SocketPair sp = new SocketPair { This = s, Other = candidate };
+
+                    Debug.Log(candidate);
+                    return sp;
+                })
+                .Where(sp => sp.Other != null)
+                .Where(sp => realSockets.Contains(sp.Other));
         }
 
         private bool IsColliding(IEnumerable<Socket> connectionCandidates)
         {
             var chunkSnapCandidates = connectionCandidates
-                .Select(o => o.GetComponentInParent<Chunk>())
+                .Select(o => o.Block.Chunk)
                 .ToSet();
 
             for (var i = 0; i < colliding.Count; i++)
@@ -113,10 +136,12 @@ namespace Blocks.Builder
 
         public (Vector3 position, Quaternion rotation, int connections, bool valid) AlignShadow(Chunk chunkSource)
         {
-            var connections = chunkSource.GetConnections();
+            SocketPair[] connections = chunkSource.GetConnections().ToArray();
+
+            // var connections = chunkSource.GetConnections();
 
             // TODO refactor + test
-            connections = FilterOutCollinear(connections);
+            // connections = FilterOutCollinear(connections);
             // connections = FilterOutClose(connections);
 
             // Chose two closes connections and choose origin and alignment.
@@ -128,17 +153,17 @@ namespace Blocks.Builder
 
             if (connections.Length == 1)
             {
-                var thisSocket = connections[0].thisSocket;
-                var otherSocket = connections[0].otherSocket;
+                var thisSocket = connections[0].This;
+                var otherSocket = connections[0].Other;
 
                 var (position1, rotation1) = AlignShadowSingle(thisSocket, otherSocket, chunkSource.transform);
                 return (position1, rotation1, 1, true);
             }
 
-            var thisSocketA = connections[0].thisSocket;
-            var otherSocketA = connections[0].otherSocket;
-            var thisSocketB = connections[1].thisSocket;
-            var otherSocketB = connections[1].otherSocket;
+            var thisSocketA = connections[0].This;
+            var otherSocketA = connections[0].Other;
+            var thisSocketB = connections[1].This;
+            var otherSocketB = connections[1].Other;
 
             var (position, rotation) = AlignShadow(thisSocketA, thisSocketB, otherSocketA, otherSocketB, chunkSource.transform);
             return (position, rotation, connections.Length, true);
@@ -187,34 +212,34 @@ namespace Blocks.Builder
             return output.ToArray();
         }
 
-        private (Vector3 position, Quaternion rotation) AlignShadowSingle(Transform thisA, Transform otherA, Transform blockSource)
+        private (Vector3 position, Quaternion rotation) AlignShadowSingle(Socket thisA, Socket otherA, Transform blockSource)
         {
             var possibleDirs = new[]
             {
-                (0, otherA.forward.normalized),
-                (1, -otherA.forward.normalized),
-                (2, otherA.right.normalized),
-                (3, -otherA.right.normalized)
+                (0, otherA.Forward().normalized),
+                (1, -otherA.Forward().normalized),
+                (2, otherA.Right().normalized),
+                (3, -otherA.Right().normalized)
             };
 
-            var closestDirection = possibleDirs.OrderByDescending(p => p.Item2.Angle(thisA.right.normalized)).First().Item1;
+            var closestDirection = possibleDirs.OrderByDescending(p => p.Item2.Angle(thisA.Right().normalized)).First().Item1;
 
-            var thisDir = thisA.right.normalized;
-            var otherDir = otherA.right.normalized;
+            var thisDir = thisA.Right().normalized;
+            var otherDir = otherA.Right().normalized;
 
             switch (closestDirection)
             {
                 case 0:
-                    otherDir = otherA.forward.normalized;
+                    otherDir = otherA.Forward().normalized;
                     break;
                 case 1:
-                    otherDir = -otherA.forward.normalized;
+                    otherDir = -otherA.Forward().normalized;
                     break;
                 case 2:
-                    otherDir = otherA.right.normalized;
+                    otherDir = otherA.Right().normalized;
                     break;
                 case 3:
-                    otherDir = -otherA.right.normalized;
+                    otherDir = -otherA.Right().normalized;
                     break;
             }
 
@@ -224,33 +249,54 @@ namespace Blocks.Builder
             return AlignShadow(thisA, thisDir, otherA, otherDir, blockSource);
         }
 
-        private (Vector3 position, Quaternion rotation) AlignShadow(Transform thisA, Transform thisB, Transform otherA,
-            Transform otherB, Transform blockSource)
+        private (Vector3 position, Quaternion rotation) AlignShadow(Socket thisA, Socket thisB, Socket otherA,
+            Socket otherB, Transform blockSource)
         {
-            var thisDir = (thisB.position - thisA.position).normalized;
-            var otherDir = (otherB.position - otherA.position).normalized;
+            var thisDir = (thisB.Position - thisA.Position).normalized;
+            var otherDir = (otherB.Position - otherA.Position).normalized;
 
             return AlignShadow(thisA, thisDir, otherA, otherDir, blockSource);
+            // return AlignShadow(thisA, thisDir, otherA, otherDir, blockSource);
         }
 
-        private (Vector3 position, Quaternion rotation) AlignShadow(Transform thisA, Vector3 thisDir, Transform otherA,
+        private (Vector3 position, Quaternion rotation) AlignShadow(Socket thisA, Vector3 thisDir, Socket otherA,
             Vector3 otherDir, Transform blockSource)
         {
             var thisToOtherRotation = Quaternion.FromToRotation(thisDir, otherDir);
 
             // Correct for rotation along the direction (multiple valid states for resulting rotation)
-            var correctedUpVector = thisToOtherRotation * -thisA.up;
-            var angle = Vector3.SignedAngle(correctedUpVector, otherA.up, otherDir);
+            var correctedUpVector = thisToOtherRotation * -thisA.Up();
+            var angle = Vector3.SignedAngle(correctedUpVector, otherA.Up(), otherDir);
             var correction = Quaternion.AngleAxis(angle, otherDir);
 
             var targetRotation = correction * thisToOtherRotation * blockSource.rotation;
 
-            var blockSocketLocalPosition = blockSource.InverseTransformPoint(thisA.position);
+            var blockSocketLocalPosition = blockSource.InverseTransformPoint(thisA.Position);
             var shadowSocketWorldPosition = transform.TransformPoint(blockSocketLocalPosition);
             var adjustedWorldPosition = shadowSocketWorldPosition - transform.position;
-            var targetPosition = otherA.position - adjustedWorldPosition;
+            var targetPosition = otherA.Position - adjustedWorldPosition;
 
             return (targetPosition, targetRotation);
+        }
+    
+        
+    }
+
+    static class SocketHelper
+    {
+        public static Vector3 Forward(this Socket s)
+        {
+            return s.Orientation * Vector3.forward;
+        }
+
+        public static Vector3 Right(this Socket s)
+        {
+            return s.Orientation * Vector3.right;
+        }
+
+        public static Vector3 Up(this Socket s)
+        {
+            return s.Orientation * Vector3.up;
         }
     }
 }

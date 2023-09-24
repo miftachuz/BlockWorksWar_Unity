@@ -64,6 +64,7 @@ namespace Blocks.Builder
 
         public void EndSnap()
         {
+            Debug.Log("Snap count " + Snap.Count());
             if (Snap.Any())
             {
                 // Copy the transform back

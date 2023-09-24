@@ -1,13 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Blocks.Builder;
 using Blocks.Sockets;
 using ElasticSea.Framework.Extensions;
 using UnityEngine;
 
 namespace Blocks
 {
-    [ExecuteInEditMode]
+    // [ExecuteInEditMode]
     public class Block : MonoBehaviour
     {
         [Header("References")]
@@ -28,14 +29,22 @@ namespace Blocks
         {
             get
             {
-                for (var i = 0; i < sockets.Length; i++)
+                for (int i = 0; i < sockets.Length; i++)
                 {
-                    var socket = sockets[i];
-                    if (socket.ConnectedSocket != null)
+                    if (sockets[i].IsConnected)
                     {
-                        yield return socket.ConnectedSocket.Block;
+                        yield return sockets[i].ConnectedSocket.Block;
                     }
                 }
+
+                // for (var i = 0; i < sockets.Length; i++)
+                // {
+                //     var socket = sockets[i];
+                //     if (socket.ConnectedSocket != null)
+                //     {
+                //         yield return socket.ConnectedSocket.Block;
+                //     }
+                // }
             }
         }
 
@@ -50,9 +59,17 @@ namespace Blocks
             }
         }
 
-        private void Awake()
+        private void Start()
         {
-            sockets = GetComponentsInChildren<Socket>();
+            if (sockets != null && sockets.Length > 0)
+            {
+                for (int i = 0; i < sockets.Length; i++)
+                {
+                    sockets[i].Init(this);
+                }
+            }
+            
+            Debug.Log("Initialized");
         }
 
         public HashSet<Block> GetAllConnectedBlocks(IEnumerable<Block> ignore = null)
@@ -73,7 +90,15 @@ namespace Blocks
 
         public void AddSocket(Socket socket)
         {
+            if (sockets == null)
+                sockets = new Socket[0];
+
             sockets = sockets.Append(socket).ToArray();
+        }   
+
+        public void AddSocket(Vector3 pos, Quaternion rot)
+        {
+            AddSocket(new Socket { LocalPosition = pos, LocalOrientation = rot });
         }
 
         private void GetAllConnectedBlocks(Block parent, HashSet<Block> allConnections, ISet<Block> ignore)
@@ -119,10 +144,53 @@ namespace Blocks
             transform.localRotation = Quaternion.Euler(transform.localRotation.eulerAngles.RoundTo(90, 90, 90));
         }
 
+        private void OnDrawGizmos()
+        {
+            if (sockets.Length <= 0)
+                return;
+
+            Gizmos.color = Color.yellow.SetAlpha(0.55f);
+            foreach (Socket socket in sockets)
+            {
+                if (!socket.IsInitialized && !Application.isPlaying)
+                    socket.Init(this);
+
+                Gizmos.DrawRay(socket.Position, socket.Up() * 0.0225f);
+                Gizmos.DrawSphere(socket.Position, socket.Radius);
+            }
+        }
+
         [ContextMenu("Disconnect")]
         private void Disconnect()
         {
             ChunkFactory.Disconnect(chunk, new[] { this });
+        }
+
+        [ContextMenu("Generate Sockets From Existing")]
+        private void GenerateSocketsFromExisting()
+        {
+            if (Application.isPlaying)
+            {
+                Debug.LogWarning("Unable to generate sockets while playing");
+                return;
+            }
+
+            List<Socket> sockets = new List<Socket>();
+
+            for (int i = 0; i < transform.childCount; i++)
+            {
+                Transform c = transform.GetChild(i);
+                string s = c.name.ToLower();
+                if (s.Contains("male") || s.Contains("female"))
+                {
+                    Socket instance = new Socket { LocalPosition = c.transform.localPosition, LocalOrientation = c.transform.localRotation };
+                    instance.Init(this);
+                    sockets.Add(instance);
+                }
+            }
+
+            Debug.Log("Generated " + sockets.Count + " sockets");
+            this.sockets = sockets.ToArray();
         }
 
     }

@@ -2,12 +2,20 @@ using System;
 using System.Linq;
 using Blocks.Sockets;
 using ElasticSea.Framework.Extensions;
+using Unity.VisualScripting;
+using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 
 namespace Blocks.Builder
 {
     public class BuildPreviewFactory
     {
+        /*
+        * TODO:
+        *   The connection logic is dependent on the preview/ghost block
+        *   which is not ideal, and difficult to modify the connection logic
+        */
+
         public static BuildPreview Build(Chunk chunk)
         {
             var chunkPreviewGo = new GameObject($"{chunk.name} Preview");
@@ -35,8 +43,11 @@ namespace Blocks.Builder
             component.interpolation = RigidbodyInterpolation.Interpolate;
 
             // Link real sockets to preview sockets
-            var chunkSockets = chunk.GetComponentsInChildren<Socket>();
-            var previewSockets = chunkPreviewGo.GetComponentsInChildren<Socket>();
+            // var chunkSockets = chunk.GetComponentsInChildren<Socket>();
+            // var previewSockets = chunkPreviewGo.GetComponentsInChildren<Socket>();
+
+            var chunkSockets = chunk.EmptySockets.ToArray();
+            var previewSockets = chunkPreviewGo.GetComponent<Chunk>().EmptySockets.ToArray();
             chunkPreview.PreviewToRealSocketMap = chunkSockets
                 .Zip(previewSockets, (s0, s1) => (Chunk: s0, Preview: s1))
                 .ToDictionary(tuple => tuple.Preview, tuple => tuple.Chunk);
@@ -50,6 +61,9 @@ namespace Blocks.Builder
 
             foreach (Transform fromChild in from)
             {
+                if (fromChild.name.Contains("Collider"))
+                    continue;
+
                 var toChild = new GameObject().transform;
                 toChild.SetParent(to, false);
                 toChild.CopyLocalFrom(fromChild);
@@ -60,22 +74,37 @@ namespace Blocks.Builder
         }
 
         private static void CopyComponents(Transform from, Transform to)
-        {
+        {            
             CopyCollider(from, to);
             CopyMeshFilter(from, to);
             CopyRenderer(from, to);
             CopySocket(from, to);
+
+            if (from.TryGetComponent(out Chunk c))
+                to.AddComponent<Chunk>();
+
+            if (from.TryGetComponent(out Block b))
+            {
+                Block clone = to.AddComponent<Block>();
+                clone.Chunk = clone.GetComponentInParent<Chunk>();
+                clone.BlockMaterial = b.BlockMaterial;
+                
+                foreach (Socket s in b.Sockets)
+                {   
+                    clone.AddSocket(s.LocalPosition, s.LocalOrientation);
+                }
+            }
         }
 
         private static void CopySocket(Transform from, Transform to)
         {
-            var fromSocket = from.GetComponent<Socket>();
-            if (fromSocket)
-            {
-                var toSocket = to.gameObject.AddComponent<Socket>();
-                toSocket.Block = fromSocket.Block;
-                toSocket.Active = false;
-            }
+            // var fromSocket = from.GetComponent<Socket>();
+            // if (fromSocket)
+            // {
+            //     var toSocket = to.gameObject.AddComponent<Socket>();
+            //     toSocket.Block = fromSocket.Block;
+            //     toSocket.Active = false;
+            // }
         }
 
         private static void CopyRenderer(Transform from, Transform to)

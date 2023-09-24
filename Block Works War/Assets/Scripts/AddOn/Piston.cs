@@ -48,7 +48,7 @@ public class Piston : InteractableBlock
 
         Block connected = socket.ConnectedSocket.Block;
         connected.transform.localPosition += offset;
-        foreach (Socket s in connected.Sockets.Where(c => c.name.ToLower().Contains("male")))
-            UpdateConnectedBlockRecurse(s, offset);
+        // foreach (Socket s in connected.Sockets.Where(c => c.name.ToLower().Contains("male")))
+        //     UpdateConnectedBlockRecurse(s, offset);
     }
 }
