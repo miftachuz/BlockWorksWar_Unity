@@ -14982,7 +14982,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!1 &1588612462256956767
 GameObject:
   m_ObjectHideFlags: 0
@@ -15028,7 +15028,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3925631335588793691}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.02, z: 0}
+  m_LocalPosition: {x: 0.025000095, y: 0.020000022, z: 0.025}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -15162,7 +15162,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   chunk: {fileID: 7660504734086609477}
-  sockets: []
+  sockets:
+  - position: {x: 0.025, y: 0, z: 0.025}
+    orientation: {x: 180, y: 0, z: 0}
+    isActive: 1
+  - position: {x: 0.025, y: 0.04, z: 0.025}
+    orientation: {x: 0, y: 0, z: 0}
+    isActive: 1
   IsAnchored: 0
   BlockMaterial: {fileID: 11400000, guid: 2fa152e3856824646a5c66406b3af1fd, type: 2}
 --- !u!114 &6741790230728218412
@@ -15177,11 +15183,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9c6b0ae3bf5cf014993d340d2df3b1d1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  _block: {fileID: 6741790230728218411}
   _topPiece: {fileID: 63184349}
-  _topSocket:
-    position: {x: 0, y: 0, z: 0}
-    orientation: {x: 0, y: 0, z: 0}
-    isActive: 0
   _extended: 0
 --- !u!33 &6884852279219569717
 MeshFilter:

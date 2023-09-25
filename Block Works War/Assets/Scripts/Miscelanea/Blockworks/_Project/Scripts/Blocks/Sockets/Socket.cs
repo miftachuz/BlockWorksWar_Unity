@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Blocks.Builder;
 using UnityEngine;
 
@@ -78,7 +79,7 @@ namespace Blocks.Sockets
         
         public void Connect(Socket other)
         {
-            if (IsConnected || other.IsConnected)
+            if (IsConnected)
                 return;
             
             connectedSocket = other;
@@ -96,6 +97,15 @@ namespace Blocks.Sockets
             connectedSocket = null;
 
             collider.enabled = true;
+        }
+
+        public IEnumerable<Socket> GetSiblingSockets()
+        {
+            foreach (Socket s in block.Sockets)
+            {
+                if (s != this)
+                    yield return s;
+            }
         }
 
         private void CreateCollider()
