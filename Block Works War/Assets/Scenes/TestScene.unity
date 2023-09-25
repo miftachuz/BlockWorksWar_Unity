@@ -11459,7 +11459,7 @@ PrefabInstance:
     - target: {fileID: 3213907224292510741, guid: 11eb7b9356c0f5d47854f762f4197783,
         type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 6252726721766265548, guid: 11eb7b9356c0f5d47854f762f4197783,
         type: 3}
@@ -12772,7 +12772,7 @@ PrefabInstance:
     - target: {fileID: 3213907224292510741, guid: 11eb7b9356c0f5d47854f762f4197783,
         type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 6252726721766265548, guid: 11eb7b9356c0f5d47854f762f4197783,
         type: 3}
@@ -15012,7 +15012,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 737541039999909314}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.75, z: 0}
+  m_LocalPosition: {x: -2.068, y: 0.75, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -15181,6 +15181,7 @@ MonoBehaviour:
   _topSocket:
     position: {x: 0, y: 0, z: 0}
     orientation: {x: 0, y: 0, z: 0}
+    isActive: 0
   _extended: 0
 --- !u!33 &6884852279219569717
 MeshFilter:

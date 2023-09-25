@@ -8,7 +8,6 @@ using UnityEngine;
 
 namespace Blocks
 {
-    // [ExecuteInEditMode]
     public class Block : MonoBehaviour
     {
         [Header("References")]
@@ -65,11 +64,12 @@ namespace Blocks
             {
                 for (int i = 0; i < sockets.Length; i++)
                 {
+                    if (sockets[i].IsInitialized)
+                        continue;
+                        
                     sockets[i].Init(this);
                 }
             }
-            
-            Debug.Log("Initialized");
         }
 
         public HashSet<Block> GetAllConnectedBlocks(IEnumerable<Block> ignore = null)
@@ -96,9 +96,11 @@ namespace Blocks
             sockets = sockets.Append(socket).ToArray();
         }   
 
-        public void AddSocket(Vector3 pos, Quaternion rot)
+        public void AddSocket(Vector3 pos, Quaternion rot, bool isActive)
         {
-            AddSocket(new Socket { LocalPosition = pos, LocalOrientation = rot });
+            Socket s = new Socket { LocalPosition = pos, LocalOrientation = rot, IsActive = isActive }; 
+            s.Init(this);
+            AddSocket(s);
         }
 
         private void GetAllConnectedBlocks(Block parent, HashSet<Block> allConnections, ISet<Block> ignore)
@@ -156,6 +158,12 @@ namespace Blocks
                     socket.Init(this);
 
                 Gizmos.DrawRay(socket.Position, socket.Up() * 0.0225f);
+
+                if (socket.IsConnected)
+                    Gizmos.color = Color.red.SetAlpha(0.55f);
+                else
+                    Gizmos.color = Color.yellow.SetAlpha(0.55f);
+
                 Gizmos.DrawSphere(socket.Position, socket.Radius);
             }
         }

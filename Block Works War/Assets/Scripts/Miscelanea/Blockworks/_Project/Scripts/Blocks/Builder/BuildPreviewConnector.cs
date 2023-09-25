@@ -25,11 +25,11 @@ namespace Blocks.Builder
             transform.rotation = rotation;
 
             var connectionCandidates = GetSocketConnectionCandidates(chunk).ToList();
-            if (IsColliding(connectionCandidates.Select(c => c.Other)))
-            {
-                // New chunk would collide with itself
-                return (AlignState.BlockingWithItself, new SocketPair[0]);
-            }
+            // if (IsColliding(connectionCandidates.Select(c => c.Other)))
+            // {
+            //     // New chunk would collide with itself
+            //     return (AlignState.BlockingWithItself, new SocketPair[0]);
+            // }
 
             var closeSocketPairs = FilterOutDistantSockets(connectionCandidates, MaxSocketDistanceEpsilon).ToArray();
             if (closeSocketPairs.Length < 2)
@@ -64,17 +64,6 @@ namespace Blocks.Builder
             });
         }
 
-        // private IEnumerable<SocketPair> GetSocketConnectionCandidates(Chunk owner)
-        // {
-        //     var realSockets = owner.GetComponentsInChildren<Socket>().ToSet();
-        //     var previewSockets = GetComponentsInChildren<Socket>();
-
-        //     return previewSockets
-        //         .Select(socket => new SocketPair {This = socket, Other = socket.GetSocketCandidate()})
-        //         .Where(socketPair => socketPair.Other != null)
-        //         .Where(socketPair => realSockets.Contains(socketPair.Other) == false);
-        // }
-
         private IEnumerable<SocketPair> GetSocketConnectionCandidates(Chunk owner)
         {
             // IEnumerable<Socket> realSockets = owner.Sockets;
@@ -83,19 +72,11 @@ namespace Blocks.Builder
             // TODO: This might return null, check the preview object hierarchy structure
             IEnumerable<Socket> previewSockets = GetComponentInChildren<Chunk>().EmptySockets;
 
-            Debug.Log("Called");
-
             // TODO: This will cause performance issue when called frequently
             return previewSockets
-                .Select(s => {
-                    Socket candidate = s.GetSocketCandidate();
-                    SocketPair sp = new SocketPair { This = s, Other = candidate };
-
-                    Debug.Log(candidate);
-                    return sp;
-                })
+                .Select(s => new SocketPair { This = s, Other = s.GetSocketCandidate() })
                 .Where(sp => sp.Other != null)
-                .Where(sp => realSockets.Contains(sp.Other));
+                .Where(sp => realSockets.Contains(sp.Other) == false);
         }
 
         private bool IsColliding(IEnumerable<Socket> connectionCandidates)
@@ -279,24 +260,24 @@ namespace Blocks.Builder
             return (targetPosition, targetRotation);
         }
     
-        
     }
 
+    // NOTE: Quick and dirty helper class, this can be removed in the future update
     static class SocketHelper
     {
         public static Vector3 Forward(this Socket s)
         {
-            return s.Orientation * Vector3.forward;
+            return (s.Orientation * Vector3.forward).normalized;
         }
 
         public static Vector3 Right(this Socket s)
         {
-            return s.Orientation * Vector3.right;
+            return (s.Orientation * Vector3.right).normalized;
         }
 
         public static Vector3 Up(this Socket s)
         {
-            return s.Orientation * Vector3.up;
+            return (s.Orientation * Vector3.up).normalized;
         }
     }
 }

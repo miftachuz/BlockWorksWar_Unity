@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Blocks.Sockets;
 using ElasticSea.Framework.Extensions;
+using UnityEngine;
 
 namespace Blocks
 {
@@ -13,6 +14,7 @@ namespace Blocks
             var allChunks = GetChunksFromSocketPairs(socketPairs);
             var (main, rest) = allChunks.SeparateMainGroup(chunk => chunk.Blocks);
             main.Connect(socketPairs, rest);
+            Debug.Log("Connectting " + main.name + " with " + rest.Count() + " chunks");
             return main;
         }
 
@@ -31,6 +33,7 @@ namespace Blocks
             {
                 var thisChunk = thisSocket.Block.Chunk;
                 var otherChunk = otherSocket.Block.Chunk;
+
                 chunks.Add(thisChunk);
                 chunks.Add(otherChunk);
             }

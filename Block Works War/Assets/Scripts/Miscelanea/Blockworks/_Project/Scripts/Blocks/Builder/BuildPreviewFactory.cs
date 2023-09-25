@@ -3,7 +3,6 @@ using System.Linq;
 using Blocks.Sockets;
 using ElasticSea.Framework.Extensions;
 using Unity.VisualScripting;
-using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 
 namespace Blocks.Builder
@@ -42,10 +41,7 @@ namespace Blocks.Builder
             component.isKinematic = true;
             component.interpolation = RigidbodyInterpolation.Interpolate;
 
-            // Link real sockets to preview sockets
-            // var chunkSockets = chunk.GetComponentsInChildren<Socket>();
-            // var previewSockets = chunkPreviewGo.GetComponentsInChildren<Socket>();
-
+            // This map the socket on the preview chunk to the real socket on the target chunk
             var chunkSockets = chunk.EmptySockets.ToArray();
             var previewSockets = chunkPreviewGo.GetComponent<Chunk>().EmptySockets.ToArray();
             chunkPreview.PreviewToRealSocketMap = chunkSockets
@@ -91,7 +87,7 @@ namespace Blocks.Builder
                 
                 foreach (Socket s in b.Sockets)
                 {   
-                    clone.AddSocket(s.LocalPosition, s.LocalOrientation);
+                    clone.AddSocket(s.LocalPosition, s.LocalOrientation, false);
                 }
             }
         }

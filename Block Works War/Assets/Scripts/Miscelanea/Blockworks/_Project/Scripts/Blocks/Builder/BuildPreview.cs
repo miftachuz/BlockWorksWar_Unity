@@ -59,7 +59,7 @@ namespace Blocks.Builder
         {
             gameObject.SetActive(true);
             //SwitchLayerInChildren(transform, "Default", "SnapSocket");
-            Update();
+            // Update();
         }
 
         public void EndSnap()

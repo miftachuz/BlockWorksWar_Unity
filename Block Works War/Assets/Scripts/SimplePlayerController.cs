@@ -32,7 +32,7 @@ public class SimplePlayerController : MonoBehaviour
         }
         else if (Input.GetMouseButtonUp(0))
         {
-            // HandleGrabEnd();
+            HandleGrabEnd();
         }
     }
 

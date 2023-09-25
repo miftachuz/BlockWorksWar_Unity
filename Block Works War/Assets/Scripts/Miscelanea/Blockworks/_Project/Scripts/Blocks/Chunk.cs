@@ -1,5 +1,3 @@
-using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using Blocks.Builder;
@@ -44,42 +42,6 @@ namespace Blocks
                 }
             }
         }
-
-        // public (Socket thisSocket, Socket otherSocket)[] GetConnections()
-        // {
-        //     var sockets = transform.GetComponentsInChildren<Socket>();
-        //     var connected = new Socket[sockets.Length];
-
-        //     // Find all connected pairs
-        //     for (var i = 0; i < sockets.Length; i++)
-        //     {
-        //         var socket = sockets[i];
-        //         var candidate = socket.GetComponent<Socket>().Trigger();
-        //         if (candidate.IsEmpty() == false)
-        //         {
-        //             var closest = candidate
-        //                 .OrderBy(o => o.transform.position.Distance(socket.transform.position))
-        //                 .First();
-
-        //             var sockets2 = closest;
-
-        //             connected[i] = closest;
-
-        //         }
-        //     }
-
-        //     // Sort connection for the closest one
-        //     return sockets.Select((socket, i) =>
-        //         {
-        //             if (connected[i] == null) return null;
-        //             var dist = sockets[i].Position.Distance(connected[i].Position);
-        //             return new {Index = i, Distance = dist};
-        //         })
-        //         .Where(it => it != null)
-        //         .OrderBy(arg => arg.Distance)
-        //         .Select(arg => (sockets[arg.Index].transform, connected[arg.Index].transform))
-        //         .ToArray();
-        // }
 
         public bool IsAnchored => Blocks.Any(l => l.IsAnchored);
 

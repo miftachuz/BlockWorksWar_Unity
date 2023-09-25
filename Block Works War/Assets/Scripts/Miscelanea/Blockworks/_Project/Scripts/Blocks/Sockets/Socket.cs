@@ -1,3 +1,4 @@
+using Blocks.Builder;
 using UnityEngine;
 
 namespace Blocks.Sockets
@@ -7,16 +8,16 @@ namespace Blocks.Sockets
     {
         private const string SnapSocketLayer = "SnapSocket";
         private static float DefaultRadius = 0.0125f;
-        private static Collider[] SocketBuffer = new Collider[3];
+        private static Collider[] SocketBuffer = new Collider[4];
 
         [SerializeField] private Vector3 position;
         [SerializeField] private Vector3 orientation;
+        [SerializeField] private bool isActive = true;
 
         // [SerializeField]
         private Block block;
         private Socket connectedSocket;
         private SphereCollider collider;
-        private bool isActive;
 
         /// <summary>
         /// Local position relative to the owner block
@@ -30,19 +31,7 @@ namespace Blocks.Sockets
         /// <summary>
         /// World space position
         /// </summary>
-        public Vector3 Position 
-        { 
-            get
-            {
-                if (block == null)
-                {
-                    Debug.LogWarning("Unable to retrieve world position");
-                    return position;
-                }
-                
-                return block.transform.TransformPoint(position); 
-            }
-        }
+        public Vector3 Position { get => block.transform.TransformPoint(position); }
 
         /// <summary>
         /// Local orientation relative to the owner block
@@ -73,7 +62,9 @@ namespace Blocks.Sockets
             set
             {
                 isActive = value;
-                collider.enabled = isActive && !IsConnected;
+
+                if (collider != null)
+                    collider.enabled = isActive && !IsConnected;
             }
         }
 
@@ -120,6 +111,8 @@ namespace Blocks.Sockets
             collider.isTrigger = true;
 
             g.AddComponent<SocketIdentifier>().Socket = this;
+
+            IsActive = IsActive;
         }
 
         /// <summary>
@@ -128,18 +121,16 @@ namespace Blocks.Sockets
         /// <returns></returns>
         public Socket GetSocketCandidate()
         {
-            // LayerMask layer = LayerMask.NameToLayer(SnapSocketLayer);
-            int layer = ~0;
+            LayerMask layer = LayerMask.GetMask(SnapSocketLayer);
             int hits = Physics.OverlapSphereNonAlloc(Position, Radius, SocketBuffer, layer, QueryTriggerInteraction.Collide);
 
             if (hits > 0)
             {
                 for (int i = 0; i < hits; i++)
                 {
-                    // NOTE: Find a way for checking the other socket without GetComponent call
                     if (SocketBuffer[i].TryGetComponent(out SocketIdentifier id))
                     {
-                        if (id.Socket.Block != block)
+                        if (id.Socket.Block != block && id.Socket.LocalOrientation != LocalOrientation)
                             return id.Socket;
                     }
                 }
